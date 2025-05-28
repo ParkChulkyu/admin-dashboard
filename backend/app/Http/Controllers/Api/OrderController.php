@@ -14,6 +14,7 @@ class OrderController extends Controller
     // 전체 주문 목록 (관리자만 사용 가능)
     public function index()
     {
+        // 전체 주문 + 사용자 + 상품정보까지 포함해서 가져오기
         $orders = Order::with('items.product', 'user')->get();
         return response()->json($orders);
     }
