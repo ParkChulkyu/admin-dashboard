@@ -29,18 +29,23 @@ export default function AdminDashboard() {
   });
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const token = localStorage.getItem("token");
     if (!token) {
       router.push("/login");
       return;
     }
-
+console.log("보내는 토큰:", token);
     axios
       .get("http://localhost:8000/api/admin/dashboard", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setStats(res.data))
-      .catch(() => router.push("/login"));
+      .catch((err) => {
+        console.error("관리자 대시보드 요청 실패:", err);
+        router.push("/login");
+      });
   }, []);
 
   return (

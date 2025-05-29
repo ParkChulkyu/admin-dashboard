@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/api";
+import axios from "axios"; // ✅ axios도 import 필요!
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -16,13 +17,24 @@ export default function LoginPage() {
 
       if (res.token) {
         localStorage.setItem("token", res.token);
-        router.push("/admin/dashboard"); // 관리자용 대시보드로 이동 (예시)
+
+        // ✅ 이건 단순 테스트용 요청 (선택사항)
+        const testRes = await axios.get("http://localhost:8000/api/admin/dashboard", {
+          headers: {
+            Authorization: `Bearer ${res.token}`,
+          },
+        });
+
+        console.log("관리자 확인 응답:", testRes.data);
+
+        // ✅ 관리자 인증 확인 후 이동
+        router.push("/admin/dashboard");
       } else {
         alert("로그인 실패: " + res.message);
       }
-    } catch (err) {
-      console.log(err);
-      alert("서버 오류");
+    } catch (err: any) {
+      console.error(err);
+      alert("서버 오류: " + (err?.response?.data?.message ?? "Unknown error"));
     }
   };
 

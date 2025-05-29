@@ -110,3 +110,6 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::get('/users', [UserController::class, 'index']); // 유저 목록
     Route::put('/users/{id}/role', [UserController::class, 'toggleRole']); // 역할 토글
 });
+
+//  라우트 미들웨어로도 보호할 수 있어
+Route::middleware(['auth:sanctum'])->get('/user-info', [UserController::class, 'getUserInfo']);
