@@ -14,12 +14,17 @@ class Order extends Model
     // ✅ 주문한 사용자
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(\App\Models\User::class);
     }
 
     // ✅ 주문의 상세 항목들
     public function items()
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function product()
+    {
+        return $this->belongsTo(\App\Models\Product::class);
     }
 }

@@ -66,5 +66,6 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         // ✅ 추가!
         'admin' => \App\Http\Middleware\IsAdmin::class,
+         \Fruitcake\Cors\HandleCors::class,
     ];
 }
