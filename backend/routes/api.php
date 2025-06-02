@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Models\Product;
 use App\Models\Order;
 use App\Models\User;
@@ -109,4 +112,16 @@ Route::middleware(['auth:sanctum', 'admin'])->get('/users', [UserController::cla
 Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::get('/users', [UserController::class, 'index']); // 유저 목록
     Route::put('/users/{id}/role', [UserController::class, 'toggleRole']); // 역할 토글
+});
+
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    Route::apiResource('products', AdminProductController::class);
+});
+
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/orders', [AdminOrderController::class, 'index']);
+});
+
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index']);
 });

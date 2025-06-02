@@ -10,6 +10,7 @@ type Order = {
   product: { name: string };
   quantity: number;
   status: string;
+  total?: number;
   created_at: string;
 };
 
@@ -26,11 +27,12 @@ export default function OrderPage() {
 
   const fetchOrders = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/orders", {
+      const res = await axios.get("http://localhost:8000/api/admin/orders", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setOrders(res.data);
-    } catch {
+      setOrders(res.data.data ?? res.data); // pagination 대응
+    } catch (error) {
+      console.log(error);
       router.push("/login");
     }
   };
@@ -64,13 +66,14 @@ export default function OrderPage() {
     <div className="max-w-5xl mx-auto mt-10 p-4">
       <h1 className="text-2xl font-bold mb-6">📦 주문 관리</h1>
 
-      <table className="w-full border">
+      <table className="w-full border text-sm">
         <thead className="bg-gray-100">
           <tr>
             <th className="p-2">ID</th>
             <th className="p-2">사용자</th>
             <th className="p-2">상품</th>
             <th className="p-2">수량</th>
+            <th className="p-2">총액</th>
             <th className="p-2">상태</th>
             <th className="p-2">주문일</th>
             <th className="p-2">관리</th>
@@ -80,9 +83,14 @@ export default function OrderPage() {
           {orders.map((order) => (
             <tr key={order.id} className="text-center border-t">
               <td className="p-2">{order.id}</td>
-              <td className="p-2">{order.user?.name}</td>
-              <td className="p-2">{order.product?.name}</td>
+              <td className="p-2">{order.user?.name ?? "-"}</td>
+              <td className="p-2">{order.product?.name ?? "-"}</td>
               <td className="p-2">{order.quantity}</td>
+              <td className="p-2">
+                {typeof order.total === "number"
+                  ? order.total.toLocaleString() + "원"
+                  : "-"}
+              </td>
               <td className="p-2">
                 <select
                   value={order.status}
@@ -100,7 +108,7 @@ export default function OrderPage() {
               <td className="p-2">
                 <button
                   onClick={() => handleDelete(order.id)}
-                  className="text-red-500"
+                  className="text-red-500 hover:underline"
                 >
                   삭제
                 </button>
