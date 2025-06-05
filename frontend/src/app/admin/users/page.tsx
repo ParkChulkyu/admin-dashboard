@@ -17,20 +17,27 @@ export default function AdminUserPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
 
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : "";
+
   useEffect(() => {
-    fetchUsers(1); // 초기 페이지는 1
+    fetchUsers(1);
   }, []);
 
   const fetchUsers = async (page = 1) => {
     try {
-      const res = await axios.get("/api/users", {
+      const res = await axios.get("http://localhost:8000/api/users", {
         params: {
-          page: page,
-          search: search,
+          page,
+          search,
           admin_only: adminOnly,
         },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-      setUsers(res.data.data); // 🔄 paginate 응답에서 실제 데이터
+
+      setUsers(res.data.data);
       setCurrentPage(res.data.current_page);
       setLastPage(res.data.last_page);
     } catch (error) {
@@ -44,14 +51,20 @@ export default function AdminUserPage() {
   };
 
   const handleSearch = () => {
-    fetchUsers(1); // 검색 시 항상 1페이지부터
+    fetchUsers(1);
   };
 
   const toggleAdminRole = async (id: number, isAdmin: boolean) => {
     try {
-      await axios.put(`/api/users/${id}/role`, {
-        is_admin: !isAdmin,
-      });
+      await axios.put(
+        `http://localhost:8000/api/users/${id}/role`,
+        { is_admin: !isAdmin },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       setUsers((prev) =>
         prev.map((user) =>
@@ -67,7 +80,6 @@ export default function AdminUserPage() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">유저 목록 (관리자 권한 설정)</h1>
 
-      {/* 🔍 검색 UI */}
       <div className="mb-4 flex gap-4 items-center">
         <input
           type="text"
@@ -92,7 +104,6 @@ export default function AdminUserPage() {
         </button>
       </div>
 
-      {/* 📋 유저 테이블 */}
       <table className="w-full border border-gray-200">
         <thead>
           <tr className="bg-gray-100">
@@ -127,7 +138,6 @@ export default function AdminUserPage() {
         </tbody>
       </table>
 
-      {/* ⬅️➡️ 페이지네이션 버튼 */}
       <div className="mt-4 flex gap-2 justify-center">
         {Array.from({ length: lastPage }, (_, i) => i + 1).map((pageNum) => (
           <button

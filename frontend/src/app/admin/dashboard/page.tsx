@@ -3,6 +3,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import dayjs from "dayjs";
+
+// 타입 정의
 
 type Product = {
   name: string;
@@ -25,6 +36,10 @@ type DashboardStats = {
   order_count: number;
   user_count: number;
   recent_orders: Order[];
+  monthly_sales: { month: string; total: number }[];
+  today_sales: number;
+  month_sales: number;
+  category_sales: { category: string; total: number }[];
 };
 
 export default function AdminDashboard() {
@@ -34,6 +49,10 @@ export default function AdminDashboard() {
     order_count: 0,
     user_count: 0,
     recent_orders: [],
+    monthly_sales: [],
+    today_sales: 0,
+    month_sales: 0,
+    category_sales: [],
   });
 
   useEffect(() => {
@@ -69,6 +88,42 @@ export default function AdminDashboard() {
           value={stats.user_count}
           color="text-purple-600"
         />
+        <Card
+          title="오늘 매출"
+          value={stats.today_sales}
+          color="text-red-500"
+        />
+        <Card
+          title="이번 달 매출"
+          value={stats.month_sales}
+          color="text-orange-500"
+        />
+      </div>
+
+      {/* 월별 매출 차트 */}
+      <h2 className="text-2xl font-semibold mb-4">📈 최근 6개월 매출</h2>
+      <div className="bg-white p-4 shadow rounded mb-8">
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={stats.monthly_sales}>
+            <XAxis dataKey="month" />
+            <YAxis />
+            <Tooltip
+              formatter={(value: number) => `₩${value.toLocaleString()}`}
+            />
+            <Bar dataKey="total" fill="#3182ce" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* 카테고리별 매출 */}
+      <h2 className="text-2xl font-semibold mt-10 mb-4">🧾 카테고리별 매출</h2>
+      <div className="bg-white border p-4 shadow rounded mb-8">
+        {stats.category_sales.map((cat, idx) => (
+          <div key={idx} className="flex justify-between py-1 text-sm">
+            <span>{cat.category}</span>
+            <span>₩{Number(cat.total).toLocaleString()}</span>
+          </div>
+        ))}
       </div>
 
       {/* 최근 주문 */}
@@ -82,12 +137,7 @@ export default function AdminDashboard() {
             <div>
               <p className="font-semibold">주문 ID: {order.id}</p>
               <p className="text-sm text-gray-600">
-                주문일:{" "}
-                {new Date(order.created_at).toLocaleDateString("ko-KR", {
-                  year: "numeric",
-                  month: "2-digit",
-                  day: "2-digit",
-                })}
+                주문일: {dayjs(order.created_at).format("YYYY-MM-DD")}
               </p>
             </div>
             <div className="text-sm text-gray-700 mt-2 sm:mt-0 sm:text-right">
