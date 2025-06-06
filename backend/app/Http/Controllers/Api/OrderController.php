@@ -61,13 +61,21 @@ class OrderController extends Controller
             }
 
             DB::commit();
-            return response()->json($order->load('items.product'), 201);
+
+            return response()->json([
+                'message' => '주문이 완료되었습니다.',
+                'order_id' => $order->id,
+            ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => '주문 생성 실패', 'error' => $e->getMessage()], 500);
+            return response()->json([
+                'message' => '주문 생성 실패',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
+
 
     // 주문 상세
     public function show($id)

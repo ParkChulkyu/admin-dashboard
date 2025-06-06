@@ -4,14 +4,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\UserController;
-use App\Models\Product;
-use App\Models\Order;
+use App\Http\Controllers\Api\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Models\User;
 
+// 🔐 회원가입
 Route::post('/register', function (Request $request) {
     $request->validate([
         'name' => 'required',
@@ -19,7 +20,7 @@ Route::post('/register', function (Request $request) {
         'password' => 'required|min:6',
     ]);
 
-    $user = \App\Models\User::create([
+    $user = User::create([
         'name' => $request->name,
         'email' => $request->email,
         'password' => bcrypt($request->password),
@@ -31,13 +32,14 @@ Route::post('/register', function (Request $request) {
     ]);
 });
 
+// 🔐 로그인
 Route::post('/login', function (Request $request) {
     $request->validate([
         'email' => 'required|email',
         'password' => 'required',
     ]);
 
-    $user = \App\Models\User::where('email', $request->email)->first();
+    $user = User::where('email', $request->email)->first();
 
     if (!$user || !Hash::check($request->password, $user->password)) {
         throw ValidationException::withMessages([
@@ -51,15 +53,15 @@ Route::post('/login', function (Request $request) {
     ]);
 });
 
+// 🔐 인증된 사용자 정보 / 로그아웃
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', function (Request $request) {
         $user = $request->user();
-
         return response()->json([
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
-            'is_admin' => $user->is_admin, // ✅ 프론트에서 확인 가능
+            'is_admin' => $user->is_admin,
         ]);
     });
 
@@ -69,47 +71,68 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-Route::middleware(['auth:sanctum', 'admin'])->get('/admin/dashboard', function () {
-    return response()->json([
-        'product_count' => \App\Models\Product::count(),
-        'order_count' => \App\Models\Order::count(),
-        'user_count' => \App\Models\User::count(),
-        'recent_orders' => \App\Models\Order::with(['user', 'product'])
-                            ->orderBy('created_at', 'desc')
-                            ->take(5)->get(),
-    ]);
-});
 
-// TB_product에 해당하는 부분 미들웨어 생성
-Route::middleware('auth:sanctum')->prefix('products')->group(function () {
-    Route::get('/', [ProductController::class, 'index']);
-    Route::get('/{id}', [ProductController::class, 'show']);
+// -------------------------------
+// 🛍️ 일반 사용자 API
+// -------------------------------
 
-    // ⛔ 관리자만 가능
-    Route::middleware('admin')->group(function () {
-        Route::post('/', [ProductController::class, 'store']);
-        Route::put('/{id}', [ProductController::class, 'update']);
-        Route::delete('/{id}', [ProductController::class, 'destroy']);
+Route::middleware('auth:sanctum')->group(function () {
+    // 📦 상품
+    Route::prefix('products')->group(function () {
+        Route::get('/', [ProductController::class, 'index']);     // 상품 목록
+        Route::get('/{id}', [ProductController::class, 'show']);  // 상품 상세
+
+        Route::middleware('admin')->group(function () {
+            Route::post('/', [ProductController::class, 'store']);    // 상품 등록
+            Route::put('/{id}', [ProductController::class, 'update']); // 상품 수정
+            Route::delete('/{id}', [ProductController::class, 'destroy']); // 상품 삭제
+        });
+    });
+
+    // 🧾 주문
+    Route::prefix('orders')->group(function () {
+        Route::get('/', [OrderController::class, 'index']);         // 내 주문 목록
+        Route::post('/', [OrderController::class, 'store']);        // 주문 생성
+        Route::get('/{id}', [OrderController::class, 'show']);      // 주문 상세
+        Route::put('/{id}', [OrderController::class, 'update']);    // 주문 상태 변경
+        Route::delete('/{id}', [OrderController::class, 'destroy']); // 주문 취소
     });
 });
 
-// 주문 및 주문 취소에 해당하는 부분 미들웨어 생성
-Route::middleware('auth:sanctum')->prefix('orders')->group(function () {
-    Route::get('/', [OrderController::class, 'index']);         // 주문 전체 조회
-    Route::post('/', [OrderController::class, 'store']);        // ✅ 주문 등록 ← 이게 핵심!
-    Route::get('/{id}', [OrderController::class, 'show']);      // 주문 상세
-    Route::put('/{id}', [OrderController::class, 'update']);    // 상태 변경
-    Route::delete('/{id}', [OrderController::class, 'destroy']); // 주문 삭제
+
+// -------------------------------
+// 🛠️ 관리자 전용 API (admin middleware 적용)
+// -------------------------------
+
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    // 관리자 대시보드
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+
+    // 상품 관리 (Admin 전용)
+    Route::apiResource('products', AdminProductController::class);
+
+    // 주문 관리
+    Route::get('/orders', [AdminOrderController::class, 'index']);
+
+    Route::put('/orders/{id}', [AdminOrderController::class, 'update']);
+
+    Route::delete('/orders/{id}', [AdminOrderController::class, 'destroy']);
+
+    Route::get('/orders/export', [AdminOrderController::class, 'exportCsv']);
 });
 
-// 모든 유저 목록 가져오기 (관리자만)
-Route::middleware(['auth:sanctum', 'admin'])->get('/users', [UserController::class, 'index']);
-
-// 사용자 관리 (관리자 전용)
+// 관리자 전용 사용자 관리
 Route::middleware(['auth:sanctum', 'admin'])->group(function () {
-    Route::get('/users', [UserController::class, 'index']); // 유저 목록
-    Route::put('/users/{id}/role', [UserController::class, 'toggleRole']); // 역할 토글
+    Route::get('/users', [UserController::class, 'index']);              // 전체 유저 목록
+    Route::put('/users/{id}/role', [UserController::class, 'toggleRole']); // 역할 변경
 });
 
-//  라우트 미들웨어로도 보호할 수 있어
-Route::middleware(['auth:sanctum'])->get('/user-info', [UserController::class, 'getUserInfo']);
+
+// -------------------------------
+// 🌐 비로그인 사용자도 접근 가능한 공개 API
+// -------------------------------
+
+Route::get('/products', [ProductController::class, 'index']);     // 상품 목록
+Route::get('/products/{id}', [ProductController::class, 'show']); // 상품 상세
+
+Route::get('/admin/orders/export-pdf', [AdminOrderController::class, 'exportPdf']);
