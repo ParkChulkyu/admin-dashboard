@@ -127,6 +127,7 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::put('/users/{id}/role', [UserController::class, 'toggleRole']); // 역할 변경
 });
 
+Route::middleware('auth:sanctum')->get('/users', [UserController::class, 'index']);
 
 // -------------------------------
 // 🌐 비로그인 사용자도 접근 가능한 공개 API
